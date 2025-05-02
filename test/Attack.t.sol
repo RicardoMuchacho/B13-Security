@@ -9,10 +9,15 @@ import "forge-std/console.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
+contract RejectEther {
+    fallback() external payable {
+        revert("Rejecting ETH");
+    }
+}
+
 contract AttackTest is Test {
-  
     address public bankOwner = vm.addr(1);
-    address public attackerAdr = vm.addr(2);
+    address public attackerAddr = vm.addr(2);
     CryptoBank public bank;
     Attacker public attacker;
     uint256 initalBankBalance = 10 ether;
@@ -24,8 +29,8 @@ contract AttackTest is Test {
         bank = new CryptoBank{value: initalBankBalance}();
 
         vm.stopPrank();
-      
-        vm.startPrank(attackerAdr);
+
+        vm.startPrank(attackerAddr);
         attacker = new Attacker(payable(address(bank)));
         vm.stopPrank();
     }
@@ -38,9 +43,9 @@ contract AttackTest is Test {
 
     function test_depositCorrectly() public {
         uint256 depositAmount = 1 ether;
-        vm.deal(attackerAdr, depositAmount);
-        vm.startPrank(attackerAdr);
-        
+        vm.deal(attackerAddr, depositAmount);
+        vm.startPrank(attackerAddr);
+
         bank.deposit{value: depositAmount}();
 
         assertEq(address(bank).balance, initalBankBalance + depositAmount);
@@ -48,39 +53,48 @@ contract AttackTest is Test {
         vm.stopPrank();
     }
 
-        function test_withdrawCorrectly() public {
+    function test_withdrawCorrectly() public {
         uint256 depositAmount = 1 ether;
-        vm.deal(attackerAdr,depositAmount);
-        vm.startPrank(attackerAdr);
-        
+        vm.deal(attackerAddr, depositAmount);
+        vm.startPrank(attackerAddr);
+
         bank.deposit{value: depositAmount}();
-        bank.withdraw(1 ether);
+        bank.defendedWithdraw();
 
         assertEq(address(bank).balance, initalBankBalance);
-        assertEq(attackerAdr.balance, depositAmount);
+        assertEq(attackerAddr.balance, depositAmount);
 
         vm.stopPrank();
     }
 
     function test_attackVulnerableWithdraw() public {
         uint256 ethForAttack = 2 ether;
-        vm.deal(attackerAdr, ethForAttack);
+        vm.deal(attackerAddr, ethForAttack);
         vm.deal(address(attacker), ethForAttack);
-        vm.startPrank(attackerAdr);
+        vm.startPrank(attackerAddr);
 
         uint256 bankBalanceBefore = address(bank).balance;
-        uint256 attackerBalanceBefore = attackerAdr.balance;
-        
+        uint256 attackerBalanceBefore = attackerAddr.balance;
+
         attacker.attack(ethForAttack);
         attacker.getStolenFunds();
 
         uint256 bankBalanceAfter = address(bank).balance;
-        uint256 attackerBalanceAfter = attackerAdr.balance;
-        
+        uint256 attackerBalanceAfter = attackerAddr.balance;
 
         assertEq(bankBalanceAfter, 0);
         assertEq(attackerBalanceAfter, bankBalanceBefore + attackerBalanceBefore + ethForAttack);
 
         vm.stopPrank();
+    }
+
+    function test_getStolenFundsFailure() public {
+        RejectEther rejector = new RejectEther();
+        vm.deal(address(attacker), 1 ether);
+
+        vm.prank(address(rejector));
+        // Expect revert when trying to forward funds to rejecting contract
+        vm.expectRevert("Failed");
+        attacker.getStolenFunds();
     }
 }
