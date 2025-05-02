@@ -63,20 +63,23 @@ contract AttackTest is Test {
     }
 
     function test_attackVulnerableWithdraw() public {
-        vm.deal(attackerAdr, 5 ether);
-        vm.deal(address(attacker), 5 ether);
+        uint256 ethForAttack = 2 ether;
+        vm.deal(attackerAdr, ethForAttack);
+        vm.deal(address(attacker), ethForAttack);
         vm.startPrank(attackerAdr);
-        
-        vm.expectRevert();
-        attacker.attack(2 ether);
 
-        console.log(attackerAdr.balance);
-        console.log(address(attacker).balance);
-        console.log(address(bank).balance);
+        uint256 bankBalanceBefore = address(bank).balance;
+        uint256 attackerBalanceBefore = attackerAdr.balance;
         
+        attacker.attack(ethForAttack);
         attacker.getStolenFunds();
-        // assertLe(address(bank).balance, 1.99 ether);
-        // assertGt(address(attacker).balance, 1 ether);
+
+        uint256 bankBalanceAfter = address(bank).balance;
+        uint256 attackerBalanceAfter = attackerAdr.balance;
+        
+
+        assertEq(bankBalanceAfter, 0);
+        assertEq(attackerBalanceAfter, bankBalanceBefore + attackerBalanceBefore + ethForAttack);
 
         vm.stopPrank();
     }

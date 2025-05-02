@@ -21,15 +21,15 @@ contract CryptoBank {
    }
    
    // Vulnerable function that doesn't follow CEI pattern
-    function vulnerableWithdraw(uint256 amount) external {
-      require(userBalance[msg.sender] >= amount, "Not enough balance");
+    function vulnerableWithdraw() external {
+      require(userBalance[msg.sender] > 0, "Not enough balance");
       
-      (bool success, )  = msg.sender.call{value: amount}("");
+      (bool success, )  = msg.sender.call{value: userBalance[msg.sender]}("");
       require(success, "Failed");
 
-      userBalance[msg.sender] -= amount;
+      userBalance[msg.sender] = 0;
 
-      emit withdrawEvent(msg.sender, amount);
+    //   emit withdrawEvent(msg.sender, currentBalance);
    } 
 
    function withdraw(uint256 amount) external {
