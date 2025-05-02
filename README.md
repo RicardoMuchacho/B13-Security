@@ -1,66 +1,76 @@
-## Foundry
+# 🛡️ Reentrancy Attack Simulation
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This project demonstrates a classic **Reentrancy Attack** on an insecure Ethereum smart contract and how such vulnerabilities can be exploited if **the Checks-Effects-Interactions (CEI) pattern** is not followed. The example includes a vulnerable `CryptoBank` contract, an `Attacker` contract that exploits it, and comprehensive tests using **Foundry**.
 
-Foundry consists of:
+## 🧠 Introduction to Reentrancy and CEI
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Reentrancy occurs when a contract calls an external contract before it updates its internal state. If the external contract calls back into the vulnerable contract before the first call finishes, it can execute code again — often draining funds.
 
-## Documentation
+To prevent this, developers use the **CEI pattern**, which involves:
 
-https://book.getfoundry.sh/
+1. **Check**: Validate inputs and conditions.
+2. **Effects**: Update contract state.
+3. **Interactions**: Interact with external contracts (e.g., send Ether).
 
-## Usage
+Failing to apply CEI can allow attackers to repeatedly exploit vulnerable functions like withdrawals before the balance is updated.
 
-### Build
+---
 
-```shell
-$ forge build
+## ✨ Key Features
+
+* 💣 Demonstrates a **reentrancy exploit** using a crafted attacker contract.
+* 🧪 **Tested with Foundry**, with detailed branch and coverage analysis.
+* 🔍 Covers multiple execution branches, including edge case handling.
+* 🔒 Educates on safe contract design using **CEI** and best practices.
+* 🧵 Includes a fallback-based attack loop for recursive calls.
+
+---
+
+## 🔧 Project Structure
+
+| Contract           | Description                                                              |
+| ------------------ | ------------------------------------------------------------------------ |
+| `CryptoBank.sol`   | A vulnerable ETH bank contract allowing deposits and unsafe withdrawals. |
+| `Attacker.sol`     | Attacker contract that exploits `CryptoBank` through recursive fallback. |
+| `AttackTest.t.sol` | Foundry test suite validating successful and failed attack paths.        |
+
+---
+
+## 🧩 Contract Overview
+
+### `Attacker.sol`
+
+| Function           | Description                                                          |
+| ------------------ | -------------------------------------------------------------------- |
+| `attack()`         | Deposits and triggers the reentrancy vulnerability in `CryptoBank`.  |
+| `getStolenFunds()` | Withdraws stolen funds to the attacker address.                      |
+| `receive()`        | Reenters `CryptoBank.vulnerableWithdraw()` if balance is sufficient. |
+
+---
+
+## 🛠 How to Use
+
+### Prerequisites
+
+* [Foundry](https://book.getfoundry.sh/) installed (`forge`, `cast`, etc.)
+
+### Run Tests
+
+```bash
+forge test
 ```
 
-### Test
+### Run Coverage
 
-```shell
-$ forge test
+```bash
+forge coverage
 ```
 
-### Format
+---
 
-```shell
-$ forge fmt
-```
+## 🚨 Security Takeaways
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+* Always **update state before** interacting with external addresses.
+* Use **reentrancy guards** (`nonReentrant`) for critical functions.
+* Treat any external contract call (including sending ETH) as potentially untrusted.
+* Write **unit tests that explore all logic branches**, including failure scenarios.
