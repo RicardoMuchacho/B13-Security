@@ -7,8 +7,6 @@ contract CryptoBank {
    uint256 private bankBalance;
    mapping(address user => uint256 balance) public userBalance;
    mapping(address user => uint256 loan) private userLoan;
-   uint256 public maxValue = 100 ether;
-
    constructor() payable {
       bankBalance = msg.value;
       owner = msg.sender;
@@ -17,7 +15,6 @@ contract CryptoBank {
    event depositEvent(address account, uint256 amount);
    event withdrawEvent(address account, uint256 amount);
    function deposit() external payable {
-      require(msg.value + userBalance[msg.sender] <= maxValue, "Max ETH Exceeded");
       userBalance[msg.sender] += msg.value;
 
       emit depositEvent(msg.sender, msg.value);
@@ -25,7 +22,6 @@ contract CryptoBank {
    
    // Vulnerable function that doesn't follow CEI pattern
     function vulnerableWithdraw(uint256 amount) external {
-      require(userLoan[msg.sender] == 0, "Loan not repayed");
       require(userBalance[msg.sender] >= amount, "Not enough balance");
       
       (bool success, )  = msg.sender.call{value: amount}("");
@@ -38,7 +34,6 @@ contract CryptoBank {
 
    function withdraw(uint256 amount) external {
       //checks
-      require(userLoan[msg.sender] == 0, "Loan not repayed");
       require(userBalance[msg.sender] >= amount, "Not enough balance");
 
       //effects
@@ -52,7 +47,6 @@ contract CryptoBank {
    } 
 
     receive() external payable {
-      require(msg.value + userBalance[msg.sender] <= maxValue, "Max ETH Exceeded");
       userBalance[msg.sender] += msg.value;
 
       emit depositEvent(msg.sender, msg.value);
